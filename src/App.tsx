@@ -1,5 +1,5 @@
 import './App.css'
-import {Button, createTheme, MantineProvider, Stack, TextInput} from '@mantine/core';
+import {createTheme, MantineProvider} from '@mantine/core';
 import '@mantine/core/styles.css';
 import {useEffect} from "react";
 import {loadOpenCV} from "./scripts/opencv.ts";

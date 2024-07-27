@@ -1,4 +1,4 @@
-import { atom } from 'nanostores'
+import {atom} from 'nanostores'
 
 export const $textA = atom("SAMPLE")
 export const $textB = atom("TEXT")

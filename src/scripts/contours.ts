@@ -3,7 +3,7 @@ import {BoundingBox, CvPolygon, CvPolygonsSet, Point} from "../types.ts";
 const width = 10000;
 const height = 1000;
 const scale = .1;
-const presicion = 0.001;
+const precision = 0.001;
 
 export function generatePolygons(text: string): CvPolygonsSet {
     const canvas = new OffscreenCanvas(width, height);
@@ -23,29 +23,29 @@ export function generatePolygons(text: string): CvPolygonsSet {
     ctx.fillStyle = 'black';
     ctx.fillText(text, 100, 900);
 
-    let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    let mat = cv.matFromImageData(imgData);
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const mat = cv.matFromImageData(imgData);
 
-    let gray = new cv.Mat();
+    const gray = new cv.Mat();
     cv.cvtColor(mat, gray, cv.COLOR_RGBA2GRAY);
 
-    let binary = new cv.Mat();
+    const binary = new cv.Mat();
     cv.threshold(gray, binary, 128, 255, cv.THRESH_BINARY_INV);
 
-    let contours = new cv.MatVector();
-    let hierarchy = new cv.Mat();
+    const contours = new cv.MatVector();
+    const hierarchy = new cv.Mat();
     cv.findContours(binary, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_NONE);
 
     const polygonSetBounds = getBlankBounds();
 
-    let polygons: CvPolygon[] = [];
+    const polygons: CvPolygon[] = [];
     for (let i = 0; i < contours.size(); ++i) {
-        let contour = contours.get(i);
-        let parentIdx = hierarchy.intPtr(0, i)[3] as number;
-        let epsilon = presicion * cv.arcLength(contour, true);
-        let approx = new cv.Mat();
+        const contour = contours.get(i);
+        const parentIdx = hierarchy.intPtr(0, i)[3] as number;
+        const epsilon = precision * cv.arcLength(contour, true);
+        const approx = new cv.Mat();
         cv.approxPolyDP(contour, approx, epsilon, true);
-        let points: Point[] = [];
+        const points: Point[] = [];
         for (let j = 0; j < approx.rows; ++j) {
             points.push({
                 x: approx.data32S[j * 2] * scale,
@@ -56,7 +56,7 @@ export function generatePolygons(text: string): CvPolygonsSet {
             x: approx.data32S[0] * scale,
             y: approx.data32S[1] * scale,
         });
-        let polygonBounds = getBoundingBox(points);
+        const polygonBounds = getBoundingBox(points);
         points.forEach(point => processPoint(polygonSetBounds, point))
         points.forEach(point => processPoint(polygonBounds, point))
         polygons.push({points, parentIdx: parentIdx, boundingBox: polygonBounds});

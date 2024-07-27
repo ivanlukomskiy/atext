@@ -1,25 +1,23 @@
-import {useState} from "react";
 import {Button, Stack, TextInput} from "@mantine/core";
-
-const defaultSideA = "SAMPLE";
-const defaultSideB = "TEXT";
+import {useStore} from "@nanostores/react";
+import {$textA, $textB} from "../../store.ts";
 
 function FormGenerate() {
-    const [sideAText, setSideAText] = useState(defaultSideA);
-    const [sideBText, setSideBText] = useState(defaultSideB);
+    const textA = useStore($textA)
+    const textB = useStore($textB)
     return <Stack>
         {/*<Title>set text</Title>*/}
         <TextInput
             label="side a"
             placeholder="left side text"
-            defaultValue="SAMPLE"
-            onChange={(event) => setSideAText(event.currentTarget.value)}
+            value={textA}
+            onChange={(event) => $textA.set(event.currentTarget.value)}
         />
         <TextInput
             label="side b"
             placeholder="right side text"
-            defaultValue="TEXT"
-            onChange={(event) => setSideBText(event.currentTarget.value)}
+            value={textB}
+            onChange={(event) => $textB.set(event.currentTarget.value)}
         />
         <Button>Generate</Button>
     </Stack>

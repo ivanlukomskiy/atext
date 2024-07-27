@@ -16,6 +16,8 @@
     "@jscad/stl-serializer": "^2.1.17",
     "@mantine/core": "^7.11.2",
     "@mantine/hooks": "^7.11.2",
+    "@nanostores/react": "^0.7.2",
+    "nanostores": "^0.10.3",
     "opencv.js": "^1.2.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

@@ -36,15 +36,21 @@ export function generatePolygons(text: string): CvPolygonsSet {
     const binary = new cv.Mat();
     cv.threshold(gray, binary, 128, 255, cv.THRESH_BINARY_INV);
 
-    // console.log('dimensions', mat.cols, mat.rows,)
-    // console.log("v1",  mat.ucharAt(2000, 2000))
-    // console.log("v1",  mat.ucharAt(8000, 2000))
-
-
-
     const polygonSetBounds = createBounds();
 
-    const polygons = extractPolygons(binary);
+    const figures = splitIntoFigures(binary);
+    const polygons: CvPolygon[] = []
+    let polygonIdxOffset = 0;
+    figures.forEach(figure => {
+        const newPolygons = extractPolygons(figure);
+        newPolygons.forEach((p) => {
+            if (p.parentIdx !== -1) {
+                p.parentIdx += polygonIdxOffset;
+            }
+            polygons.push(p)
+        })
+        polygonIdxOffset += newPolygons.length;
+    })
 
     polygons.forEach(polygon => {
         processPoint(polygonSetBounds, {x: polygon.bounds.left, y: polygon.bounds.top});
@@ -74,8 +80,9 @@ export function generatePolygons(text: string): CvPolygonsSet {
     return res;
 }
 
-function extractPolygons(mask: any): CvPolygon[] {
+function extractPolygons(figure: Figure): CvPolygon[] {
     const cv = window.cv;
+    const {mask, offset} = figure;
 
     const contours = new cv.MatVector();
     const hierarchy = new cv.Mat();
@@ -91,13 +98,13 @@ function extractPolygons(mask: any): CvPolygon[] {
         const points: Point[] = [];
         for (let j = 0; j < approx.rows; ++j) {
             points.push({
-                x: approx.data32S[j * 2],
-                y: approx.data32S[j * 2 + 1],
+                x: approx.data32S[j * 2] + offset.x,
+                y: approx.data32S[j * 2 + 1] + offset.y,
             });
         }
         points.push({  // enclose polygon
-            x: approx.data32S[0],
-            y: approx.data32S[1],
+            x: approx.data32S[0] + offset.x,
+            y: approx.data32S[1] + offset.y,
         });
         const polygonBounds = getBoundingBox(points);
         points.forEach(point => processPoint(polygonBounds, point))
@@ -239,14 +246,14 @@ function segmentize(mask: any, polygonsSet: CvPolygonsSet) {
             maskClone.ucharPtr(y, x)[0] = 0;
             distMap.floatPtr(y, x)[0] = dist;
             maxDist = Math.max(maxDist, dist)
-            queue.add([x+1, y, dist + 1])
-            queue.add([x-1, y, dist + 1])
-            queue.add([x, y+1, dist + 1])
-            queue.add([x, y-1, dist + 1])
-            queue.add([x+1, y+1, dist + diagonalDist])
-            queue.add([x+1, y-1, dist + diagonalDist])
-            queue.add([x-1, y+1, dist + diagonalDist])
-            queue.add([x-1, y-1, dist + diagonalDist])
+            queue.add([x + 1, y, dist + 1])
+            queue.add([x - 1, y, dist + 1])
+            queue.add([x, y + 1, dist + 1])
+            queue.add([x, y - 1, dist + 1])
+            queue.add([x + 1, y + 1, dist + diagonalDist])
+            queue.add([x + 1, y - 1, dist + diagonalDist])
+            queue.add([x - 1, y + 1, dist + diagonalDist])
+            queue.add([x - 1, y - 1, dist + diagonalDist])
         }
         maskClone.delete()
         console.log(`dist 1: min=${cv.minMaxLoc(distMap).minVal}, max=${cv.minMaxLoc(distMap).maxVal}`);
@@ -276,7 +283,7 @@ function segmentize(mask: any, polygonsSet: CvPolygonsSet) {
 
     for (let distIdx1 = 0; distIdx1 < distMaps.length - 1; distIdx1++) {
         const distMap1 = distMaps[distIdx1];
-        for (let distIdx2 = distIdx1+1; distIdx2 < distMaps.length; distIdx2++) {
+        for (let distIdx2 = distIdx1 + 1; distIdx2 < distMaps.length; distIdx2++) {
             const distMap2 = distMaps[distIdx2];
             let matches = 0
 
@@ -286,7 +293,7 @@ function segmentize(mask: any, polygonsSet: CvPolygonsSet) {
                     const dist1 = distMap1.floatAt(y, x);
                     const dist2 = distMap2.floatAt(y, x);
                     if (dist1 < 0 || dist2 < 0) continue;
-                    const diff = Math.abs(dist2-dist1);
+                    const diff = Math.abs(dist2 - dist1);
                     if (diff < 2) {
                         matches++
                         drawPoint(x * downscaleTimes, y * downscaleTimes, ctx, 'red')

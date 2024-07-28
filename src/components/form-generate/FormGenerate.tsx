@@ -47,6 +47,32 @@ function FormGenerate({onGenerate}: FormGenerateProps) {
     }, []);
 
     return <Stack>
+        <TextInput
+            label="Side A text"
+            placeholder="right side text"
+            value={textB}
+            onChange={(event) => $textB.set(event.currentTarget.value)}
+            styles={() => ({
+                input: {
+                    fontFamily: font,
+                    fontWeight: bold ? 'bold' : 'normal',
+                    fontStyle: italic ? 'italic' : 'normal',
+                },
+            })}
+        />
+        <TextInput
+            label="Side B text"
+            placeholder="left side text"
+            value={textA}
+            onChange={(event) => $textA.set(event.currentTarget.value)}
+            styles={() => ({
+                input: {
+                    fontFamily: font,
+                    fontWeight: bold ? 'bold' : 'normal',
+                    fontStyle: italic ? 'italic' : 'normal',
+                },
+            })}
+        />
         <Select
             label="Font"
             placeholder="Pick value"
@@ -63,32 +89,6 @@ function FormGenerate({onGenerate}: FormGenerateProps) {
             label="Italic"
             value={italic}
             onChange={(event) => $italic.set(event.currentTarget.checked)}
-        />
-        <TextInput
-            label="side a text"
-            placeholder="right side text"
-            value={textB}
-            onChange={(event) => $textB.set(event.currentTarget.value)}
-            styles={() => ({
-                input: {
-                    fontFamily: font,
-                    fontWeight: bold ? 'bold' : 'normal',
-                    fontStyle: italic ? 'italic' : 'normal',
-                },
-            })}
-        />
-        <TextInput
-            label="side b text"
-            placeholder="left side text"
-            value={textA}
-            onChange={(event) => $textA.set(event.currentTarget.value)}
-            styles={() => ({
-                input: {
-                    fontFamily: font,
-                    fontWeight: bold ? 'bold' : 'normal',
-                    fontStyle: italic ? 'italic' : 'normal',
-                },
-            })}
         />
         <Radio.Group
             value={reductionStrategy}

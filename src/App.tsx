@@ -1,6 +1,7 @@
 import './App.css'
 import {AppShell, createTheme, MantineProvider, ScrollArea} from '@mantine/core';
 import '@mantine/core/styles.css';
+import '@mantine/notifications/styles.css';
 import {useCallback, useEffect, useMemo, useRef} from "react";
 import {loadOpenCV} from "./scripts/opencv.ts";
 import FormGenerate from "./components/form-generate/FormGenerate.tsx";
@@ -60,13 +61,13 @@ function App() {
 
     return (
         <MantineProvider theme={theme}>
-            <Notifications position={'top-center'} />
+            <Notifications  />
             <AppShell
                 padding="md"
                 navbar={{
                     width: 200,
                     breakpoint: 'sm',
-                    collapsed: {mobile: false},
+                    // collapsed: {mobile: false},
                 }}
             >
                 <AppShell.Navbar p="xs">
@@ -76,6 +77,7 @@ function App() {
                 </AppShell.Navbar>
 
                 <AppShell.Main>
+
                     {viewer}
                     {segmentation}
                 </AppShell.Main>

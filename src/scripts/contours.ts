@@ -1,4 +1,5 @@
 import {BoundingBox, CvPolygon, CvPolygonsSet, Point} from "../types.ts";
+import {$font} from "../store.ts";
 
 const width = 10000;
 const height = 1000;
@@ -19,7 +20,7 @@ export function generatePolygons(text: string): CvPolygonsSet {
     ctx.fillStyle = 'lightgrey';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.font = '720px Arial';
+    ctx.font = '720px \"' + $font.get() + "\"";
     ctx.fillStyle = 'black';
     ctx.fillText(text, 100, 900);
 
@@ -36,7 +37,7 @@ export function generatePolygons(text: string): CvPolygonsSet {
     const hierarchy = new cv.Mat();
     cv.findContours(binary, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_NONE);
 
-    const polygonSetBounds = getBlankBounds();
+    const polygonSetBounds = createBounds();
 
     const polygons: CvPolygon[] = [];
     for (let i = 0; i < contours.size(); ++i) {
@@ -72,7 +73,7 @@ export function generatePolygons(text: string): CvPolygonsSet {
     return {polygons, bounds: polygonSetBounds};
 }
 
-function getBlankBounds(): BoundingBox {
+function createBounds(): BoundingBox {
     return {
         left: Number.MAX_SAFE_INTEGER,
         right: Number.MIN_SAFE_INTEGER,
@@ -89,7 +90,7 @@ function processPoint(bounds: BoundingBox, point: Point) {
 }
 
 function getBoundingBox(points: Point[]): BoundingBox {
-    const bounds = getBlankBounds();
+    const bounds = createBounds();
     points.forEach(point => processPoint(bounds, point));
     return bounds;
 }

@@ -1,5 +1,5 @@
 import './App.css'
-import {AppShell, createTheme, MantineProvider, ScrollArea} from '@mantine/core';
+import {AppShell, createTheme, Group, Loader, MantineProvider, ScrollArea, Text} from '@mantine/core';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import {useCallback, useEffect, useMemo, useRef} from "react";
@@ -12,13 +12,14 @@ import {render} from "./scripts/render.ts";
 import {ReductionStrategy} from "./types.ts";
 import {Geom3} from "@jscad/modeling/src/geometries/types";
 import {notifications, Notifications} from '@mantine/notifications';
+import {useStore} from "@nanostores/react";
 
 const theme = createTheme({});
 const extrusionDist = 500;
 
 function App() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-
+    const cvLoaded = useStore($cvLoaded)
     const generate = useCallback(() => {
         try {
             const polyA = generatePolygons($textA.get())
@@ -62,7 +63,7 @@ function App() {
 
     return (
         <MantineProvider theme={theme}>
-            <Notifications  />
+            <Notifications/>
             <AppShell
                 padding="md"
                 navbar={{
@@ -77,7 +78,9 @@ function App() {
                 </AppShell.Navbar>
 
                 <AppShell.Main>
-
+                    {!cvLoaded && <Group>
+                        <Loader size={'sm'}/><Text>Please wait, opencv is loading...</Text>
+                    </Group>}
                     {viewer}
                     {segmentation}
                 </AppShell.Main>

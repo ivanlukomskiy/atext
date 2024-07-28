@@ -1,10 +1,10 @@
-import {BoundingBox, CvPolygon, CvPolygonsSet, Point} from "../types.ts";
+import {BoundingBox, CvPolygon, CvPolygonsSet, Figure, Point} from "../types.ts";
 import {$bold, $font, $italic} from "../store.ts";
 import * as Collections from 'typescript-collections';
 
 const width = 10000;
 const height = 1000;
-const divider = 1;
+const divider = 10;
 const precision = 0.001;
 
 export function generatePolygons(text: string): CvPolygonsSet {
@@ -40,11 +40,46 @@ export function generatePolygons(text: string): CvPolygonsSet {
     // console.log("v1",  mat.ucharAt(2000, 2000))
     // console.log("v1",  mat.ucharAt(8000, 2000))
 
-    const contours = new cv.MatVector();
-    const hierarchy = new cv.Mat();
-    cv.findContours(binary, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_NONE);
+
 
     const polygonSetBounds = createBounds();
+
+    const polygons = extractPolygons(binary);
+
+    polygons.forEach(polygon => {
+        processPoint(polygonSetBounds, {x: polygon.bounds.left, y: polygon.bounds.top});
+        processPoint(polygonSetBounds, {x: polygon.bounds.right, y: polygon.bounds.bottom});
+    })
+
+    const res = {polygons, bounds: polygonSetBounds}
+
+    // downscale
+    downscale(res.bounds, divider)
+
+    res.polygons.forEach(polygon => {
+        downscale(polygon.bounds, divider)
+        polygon.points.forEach((point: Point) => {
+            point.x /= divider
+            point.y /= divider
+        })
+    })
+
+    console.log("res", res)
+    // segmentize(binary, res)
+
+    mat.delete();
+    gray.delete();
+    binary.delete();
+
+    return res;
+}
+
+function extractPolygons(mask: any): CvPolygon[] {
+    const cv = window.cv;
+
+    const contours = new cv.MatVector();
+    const hierarchy = new cv.Mat();
+    cv.findContours(mask, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_NONE);
 
     const polygons: CvPolygon[] = [];
     for (let i = 0; i < contours.size(); ++i) {
@@ -65,33 +100,13 @@ export function generatePolygons(text: string): CvPolygonsSet {
             y: approx.data32S[1],
         });
         const polygonBounds = getBoundingBox(points);
-        points.forEach(point => processPoint(polygonSetBounds, point))
         points.forEach(point => processPoint(polygonBounds, point))
         polygons.push({points, parentIdx: parentIdx, bounds: polygonBounds});
         approx.delete();
     }
-
-    const res = {polygons, bounds: polygonSetBounds}
-
-    // downscale
-    downscale(res.bounds, divider)
-    res.polygons.forEach(polygon => {
-        downscale(polygon.bounds, divider)
-        polygon.points.forEach((point: Point) => {
-            point.x /= divider
-            point.y /= divider
-        })
-    })
-
-    segmentize(binary, res)
-
-    mat.delete();
-    gray.delete();
-    binary.delete();
     contours.delete();
     hierarchy.delete();
-
-    return res;
+    return polygons;
 }
 
 function getRandomColor() {
@@ -117,10 +132,43 @@ function drawLine(ctx: CanvasRenderingContext2D, start: Point, end: Point, color
 
 const longSegmentThreshold = 200
 
+function trim(mat: any) {
+    const cv = window.cv;
+    let rect = cv.boundingRect(mat);
+    return mat.roi(rect).clone();
+}
+
+function splitIntoFigures(mask: any): Figure[] {
+    const cv = window.cv;
+    let labels = new cv.Mat();
+    let stats = new cv.Mat();
+    let centroids = new cv.Mat();
+    let numLabels = cv.connectedComponentsWithStats(mask, labels, stats, centroids);
+
+    let res: Figure[] = [];
+    for (let label = 1; label < numLabels; label++) {
+        let mask = new cv.Mat();
+        cv.compare(labels, new cv.Mat(labels.rows, labels.cols, labels.type(), [label, 0, 0, 0]), mask, cv.CMP_EQ);
+        let count = cv.countNonZero(mask);
+        let rect = cv.boundingRect(mask);
+        let trimmed = trim(mask);
+        res.push({mask: trimmed, offset: {x: rect.x, y: rect.y}});
+        mask.delete()
+        console.log("figure", label, "count", count, "bounds", rect)
+    }
+
+    labels.delete();
+    stats.delete();
+    centroids.delete();
+    return res
+}
+
 function segmentize(mask: any, polygonsSet: CvPolygonsSet) {
     // todo check i delete all arrays
     const cv = window.cv;
     cv.imshow("segmentation", mask)
+
+    splitIntoFigures(mask);
 
     let canvas = document.getElementById("segmentation") as HTMLCanvasElement;
     const ctx = canvas.getContext('2d')!;
@@ -157,7 +205,7 @@ function segmentize(mask: any, polygonsSet: CvPolygonsSet) {
         }
     }
 
-    const downscaleTimes = 20
+    const downscaleTimes = 10
     let downscaledMat = new cv.Mat();
     let newSize = new cv.Size(Math.round(mask.cols / downscaleTimes), Math.round(mask.rows / downscaleTimes));
     cv.resize(mask, downscaledMat, newSize, 0, 0, cv.INTER_AREA);
@@ -174,6 +222,9 @@ function segmentize(mask: any, polygonsSet: CvPolygonsSet) {
         while (!queue.isEmpty() && iteration < 1_000_000) {
             iteration++
             const [x, y, dist] = queue.dequeue()!;
+            if (x < 0 || x >= downscaledMat.cols || y < 0 || y >= downscaledMat.rows) {
+                continue
+            }
             const masked = downscaledMat.ucharAt(y, x) > 0;
             if (!masked) continue
             const isNew = maskClone.ucharAt(y, x) > 0;
@@ -244,6 +295,8 @@ function segmentize(mask: any, polygonsSet: CvPolygonsSet) {
             }
         }
     }
+
+
 }
 
 type PointWithDist = [number, number, number]

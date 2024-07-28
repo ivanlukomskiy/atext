@@ -34,3 +34,8 @@ export enum ReductionStrategy {
     NONE = 'NONE',
     SIMPLE = 'SIMPLE',
 }
+
+export interface Figure {
+    mask: any
+    offset: Point
+}

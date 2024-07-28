@@ -115,6 +115,8 @@ function drawLine(ctx: CanvasRenderingContext2D, start: Point, end: Point, color
     ctx.stroke();
 }
 
+const longSegmentThreshold = 200
+
 function segmentize(mask: any, polygonsSet: CvPolygonsSet) {
     // todo check i delete all arrays
     const cv = window.cv;
@@ -137,46 +139,63 @@ function segmentize(mask: any, polygonsSet: CvPolygonsSet) {
             baseStart = x;
             basesCount++
         } else if (!masked && baseStart !== null) {
-            let middle = (x - baseStart) / 2 + baseStart;
-            sources.push(middle)
-            drawPoint(middle, bottomHeight, ctx, 'red')
+            const segmentLength = x - baseStart;
+            console.log("segmentLength", segmentLength)
+            if (segmentLength > longSegmentThreshold) {
+                const segment1 = baseStart + segmentLength / 10;
+                const segment2 = baseStart + segmentLength - segmentLength / 10;
+                sources.push(segment1)
+                sources.push(segment2)
+                drawPoint(segment1, bottomHeight, ctx, 'red')
+                drawPoint(segment2, bottomHeight, ctx, 'red')
+            } else {
+                let middle = (x - baseStart) / 2 + baseStart;
+                sources.push(middle)
+                drawPoint(middle, bottomHeight, ctx, 'red')
+            }
             baseStart = null;
         }
     }
 
-    const downscaleTimes = 10
+    const downscaleTimes = 20
     let downscaledMat = new cv.Mat();
     let newSize = new cv.Size(Math.round(mask.cols / downscaleTimes), Math.round(mask.rows / downscaleTimes));
     cv.resize(mask, downscaledMat, newSize, 0, 0, cv.INTER_AREA);
 
     const start = new Date().getTime();
     const distMaps = sources.map((sourceX) => {
-        const stack: Collections.Queue<PointWithDist> = new Collections.Queue();
+        const queue: Collections.Queue<PointWithDist> = new Collections.Queue();
         let maskClone = downscaledMat.clone();// Assuming you have your binary Mat called 'binaryMat'
         let distMap = new cv.Mat(downscaledMat.rows, downscaledMat.cols, cv.CV_32F, new cv.Scalar(-1));
         let maxDist = 0;
-        stack.add([sourceX / downscaleTimes, bottomHeight / downscaleTimes, 0])
-        const diagonalDist = Math.sqrt(2) / 2;
+        queue.add([sourceX / downscaleTimes, bottomHeight / downscaleTimes, 0])
+        const diagonalDist = Math.sqrt(2);
         let iteration = 0;
-        while (!stack.isEmpty() && iteration < 1_000_000) {
+        while (!queue.isEmpty() && iteration < 1_000_000) {
             iteration++
-            const [x, y, dist] = stack.dequeue()!;
+            const [x, y, dist] = queue.dequeue()!;
+            const masked = downscaledMat.ucharAt(y, x) > 0;
+            if (!masked) continue
             const isNew = maskClone.ucharAt(y, x) > 0;
             if (!isNew) {
+                const currentDist = distMap.floatAt(y, x);
+                if (dist < currentDist) {
+                    distMap.floatPtr(y, x)[0] = dist;
+                }
                 continue
             }
             drawPoint(x * downscaleTimes, y * downscaleTimes, ctx, 'green')
             maskClone.ucharPtr(y, x)[0] = 0;
             distMap.floatPtr(y, x)[0] = dist;
             maxDist = Math.max(maxDist, dist)
-            stack.add([x+1, y, dist + 1])
-            stack.add([x-1, y, dist + 1])
-            stack.add([x, y+1, dist + 1])
-            stack.add([x, y-1, dist + 1])
-            stack.add([x+1, y+1, dist + diagonalDist])
-            stack.add([x+1, y-1, dist + diagonalDist])
-            stack.add([x-1, y+1, dist + diagonalDist])
-            stack.add([x-1, y-1, dist + diagonalDist])
+            queue.add([x+1, y, dist + 1])
+            queue.add([x-1, y, dist + 1])
+            queue.add([x, y+1, dist + 1])
+            queue.add([x, y-1, dist + 1])
+            queue.add([x+1, y+1, dist + diagonalDist])
+            queue.add([x+1, y-1, dist + diagonalDist])
+            queue.add([x-1, y+1, dist + diagonalDist])
+            queue.add([x-1, y-1, dist + diagonalDist])
         }
         maskClone.delete()
         console.log(`dist 1: min=${cv.minMaxLoc(distMap).minVal}, max=${cv.minMaxLoc(distMap).maxVal}`);
@@ -184,6 +203,24 @@ function segmentize(mask: any, polygonsSet: CvPolygonsSet) {
         console.log("maxDist", maxDist)
         return distMap;
     })
+
+    // const distMap1 = distMaps[0]
+    // const maxDist = cv.minMaxLoc(distMap1).maxVal;
+    // for (let x = 0; x < distMap1.cols; x++) {
+    //     for (let y = 0; y < distMap1.rows; y++) {
+    //         const dist = distMap1.floatAt(y, x);
+    //         if (dist < 0) continue;
+    //         const color = `hsl(100, 100%, ${100-dist * 100 / maxDist}%)`;
+    //         drawPoint(x * downscaleTimes, y * downscaleTimes, ctx, color)
+    //     }
+    // }
+
+    sources.forEach(source => {
+        drawPoint(source, bottomHeight, ctx, 'red')
+    })
+
+    // if (true) return
+
     console.log("segmentation time", new Date().getTime() - start)
 
     for (let distIdx1 = 0; distIdx1 < distMaps.length - 1; distIdx1++) {
@@ -199,14 +236,12 @@ function segmentize(mask: any, polygonsSet: CvPolygonsSet) {
                     const dist2 = distMap2.floatAt(y, x);
                     if (dist1 < 0 || dist2 < 0) continue;
                     const diff = Math.abs(dist2-dist1);
-                    if (diff < 3) {
+                    if (diff < 2) {
                         matches++
                         drawPoint(x * downscaleTimes, y * downscaleTimes, ctx, 'red')
                     }
                 }
             }
-
-            console.log("matches", matches)
         }
     }
 }

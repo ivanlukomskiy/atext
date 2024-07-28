@@ -113,17 +113,10 @@ function unionAll(objects: ExtrudedPolygon[]): Geom3 {
     return res!;
 }
 
-export function combineZigZag(extrusionsA: ExtrudedPolygon[], extrusionsB: ExtrudedPolygon[]) {
+export function combineNone(extrusionsA: ExtrudedPolygon[], extrusionsB: ExtrudedPolygon[]) {
     extrusionsA.sort(sortBySpanStart)
     extrusionsB.sort(sortBySpanStart)
-
-    // just fuse together
-    let res = null
     const text1 = unionAll(extrusionsA)
     const text2 = unionAll(extrusionsB)
-    res = [intersect(text1, text2)]
-    // console.log("res", res, text1, text2)
-    // res = [text1]
-
-    return res
+    return [intersect(text1, text2)]
 }

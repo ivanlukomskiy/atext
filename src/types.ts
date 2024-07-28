@@ -29,3 +29,8 @@ export interface BoundingBox {
     bottom: number;
     right: number;
 }
+
+export enum ReductionStrategy {
+    NONE = 'NONE',
+    SIMPLE = 'SIMPLE',
+}

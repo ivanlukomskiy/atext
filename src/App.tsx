@@ -4,10 +4,12 @@ import '@mantine/core/styles.css';
 import {useCallback, useEffect, useMemo, useRef} from "react";
 import {loadOpenCV} from "./scripts/opencv.ts";
 import FormGenerate from "./components/form-generate/FormGenerate.tsx";
-import {$cvLoaded, $mesh, $textA, $textB} from "./store.ts";
+import {$cvLoaded, $mesh, $reductionStrategy, $textA, $textB} from "./store.ts";
 import {generatePolygons} from "./scripts/contours.ts";
-import {combineWithOverlap, fuseLetters} from "./scripts/jscad.ts";
+import {combineWithOverlap, combineNone, fuseLetters} from "./scripts/jscad.ts";
 import {render} from "./scripts/render.ts";
+import {ReductionStrategy} from "./types.ts";
+import {Geom3} from "@jscad/modeling/src/geometries/types";
 
 const theme = createTheme({});
 const extrusionDist = 500;
@@ -20,11 +22,16 @@ function App() {
         const polyB = generatePolygons($textB.get())
         const extrusionsA = fuseLetters(polyA, extrusionDist, -Math.PI / 4)
         const extrusionsB = fuseLetters(polyB, extrusionDist, Math.PI / 4)
-        const combine = combineWithOverlap(extrusionsA, extrusionsB)
-        // const combine2 = combineWithOverlap(extrusionsA, extrusionsB)
-        console.log("combine", combine);
-        render(combine, canvasRef.current!);
-        $mesh.set(combine);
+        let res: Geom3[] = [];
+        if ($reductionStrategy.get() === ReductionStrategy.SIMPLE) {
+            res = combineWithOverlap(extrusionsA, extrusionsB)
+        } else {
+            res = combineNone(extrusionsA, extrusionsB)
+        }
+
+        console.log("res", res);
+        render(res, canvasRef.current!);
+        $mesh.set(res);
     }, []);
 
     const viewer = useMemo(() => {

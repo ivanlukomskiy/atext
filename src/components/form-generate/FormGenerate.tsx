@@ -1,8 +1,9 @@
-import {Button, Checkbox, Select, Stack, TextInput} from "@mantine/core";
+import {Button, Checkbox, Radio, Select, Stack, TextInput} from "@mantine/core";
 import {useStore} from "@nanostores/react";
-import {$bold, $font, $italic, $mesh, $textA, $textB} from "../../store.ts";
+import {$bold, $font, $italic, $mesh, $reductionStrategy, $textA, $textB} from "../../store.ts";
 import {useCallback} from "react";
 import {download} from "../../scripts/jscad.ts";
+import {ReductionStrategy} from "../../types.ts";
 
 const defaultFonts = [
     'Arial',
@@ -31,6 +32,7 @@ function FormGenerate({onGenerate}: FormGenerateProps) {
     const bold = useStore($bold)
     const italic = useStore($italic)
     const mesh = useStore($mesh);
+    const reductionStrategy = useStore($reductionStrategy);
 
     const onFont = useCallback((option: string | null) => {
         if (option !== null) {
@@ -67,7 +69,7 @@ function FormGenerate({onGenerate}: FormGenerateProps) {
             placeholder="right side text"
             value={textB}
             onChange={(event) => $textB.set(event.currentTarget.value)}
-            styles={(theme) => ({
+            styles={() => ({
                 input: {
                     fontFamily: font,
                     fontWeight: bold ? 'bold' : 'normal',
@@ -80,7 +82,7 @@ function FormGenerate({onGenerate}: FormGenerateProps) {
             placeholder="left side text"
             value={textA}
             onChange={(event) => $textA.set(event.currentTarget.value)}
-            styles={(theme) => ({
+            styles={() => ({
                 input: {
                     fontFamily: font,
                     fontWeight: bold ? 'bold' : 'normal',
@@ -88,6 +90,17 @@ function FormGenerate({onGenerate}: FormGenerateProps) {
                 },
             })}
         />
+        <Radio.Group
+            value={reductionStrategy}
+            onChange={(evt) => $reductionStrategy.set(evt as ReductionStrategy)}
+            label="Reduction strategy"
+            // description="Choose one of the following"
+        >
+            <Stack>
+                <Radio value={ReductionStrategy.SIMPLE} label={"Simple"}/>
+                <Radio value={ReductionStrategy.NONE} label={"None"}/>
+            </Stack>
+        </Radio.Group>
         <Button onClick={onGenerate}>Generate</Button>
         <Button onClick={downloadMesh} disabled={mesh.length === 0}>Download</Button>
     </Stack>

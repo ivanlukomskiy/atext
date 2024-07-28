@@ -10,7 +10,7 @@ import {combineWithOverlap, combineNone, fuseLetters} from "./scripts/jscad.ts";
 import {render} from "./scripts/render.ts";
 import {ReductionStrategy} from "./types.ts";
 import {Geom3} from "@jscad/modeling/src/geometries/types";
-
+import {notifications, Notifications} from '@mantine/notifications';
 const theme = createTheme({});
 const extrusionDist = 500;
 
@@ -18,27 +18,36 @@ function App() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     const generate = useCallback(() => {
-        const polyA = generatePolygons($textA.get())
-        const polyB = generatePolygons($textB.get())
-        const extrusionsA = fuseLetters(polyA, extrusionDist, -Math.PI / 4)
-        const extrusionsB = fuseLetters(polyB, extrusionDist, Math.PI / 4)
-        let res: Geom3[] = [];
-        if ($reductionStrategy.get() === ReductionStrategy.SIMPLE) {
-            res = combineWithOverlap(extrusionsA, extrusionsB)
-        } else {
-            res = combineNone(extrusionsA, extrusionsB)
-        }
+        try {
+            const polyA = generatePolygons($textA.get())
+            const polyB = generatePolygons($textB.get())
+            const extrusionsA = fuseLetters(polyA, extrusionDist, -Math.PI / 4)
+            const extrusionsB = fuseLetters(polyB, extrusionDist, Math.PI / 4)
+            let res: Geom3[] = [];
+            if ($reductionStrategy.get() === ReductionStrategy.NONE) {
+                res = combineNone(extrusionsA, extrusionsB)
+            } else {
+                res = combineWithOverlap(extrusionsA, extrusionsB)
+            }
 
-        console.log("res", res);
-        render(res, canvasRef.current!);
-        $mesh.set(res);
+            console.log("res", res);
+            render(res, canvasRef.current!);
+            $mesh.set(res);
+        } catch (e) {
+            notifications.show({
+                title: 'Something went wrong',
+                message: 'Try refreshing the page',
+                color: 'red',
+            });
+            throw e;
+        }
     }, []);
 
     const viewer = useMemo(() => {
         return <div id="viewer" style={{width: 800, height: 500, backgroundColor: "green", display: 'none'}}></div>
     }, [])
     const segmentation = useMemo(() => {
-        return <div id="segmentation" style={{padding: 3, backgroundColor: 'darkgrey'}}></div>
+        return <div id="segmentation" style={{padding: 3, backgroundColor: 'darkgrey', display: 'none'}}></div>
         // return <canvas id="segmentation" style={{width: 1000, height: 100}}></canvas>
     }, [])
 
@@ -51,6 +60,7 @@ function App() {
 
     return (
         <MantineProvider theme={theme}>
+            <Notifications position={'top-center'} />
             <AppShell
                 padding="md"
                 navbar={{

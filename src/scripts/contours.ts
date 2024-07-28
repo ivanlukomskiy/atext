@@ -1,11 +1,14 @@
-import {BoundingBox, CvPolygon, CvPolygonsSet, Figure, Point} from "../types.ts";
-import {$bold, $font, $italic} from "../store.ts";
+import {BoundingBox, CvPolygon, CvPolygonsSet, Figure, Point, ReductionStrategy} from "../types.ts";
+import {$bold, $font, $italic, $reductionStrategy} from "../store.ts";
 import * as Collections from 'typescript-collections';
 
 const width = 10000;
 const height = 1000;
 const divider = 10;
 const precision = 0.001;
+const optimizationDownscale = 10
+const longSegmentThreshold = 200
+let canvasIdCounter = 0;
 
 export function generatePolygons(text: string): CvPolygonsSet {
     const canvas = new OffscreenCanvas(width, height);
@@ -38,15 +41,15 @@ export function generatePolygons(text: string): CvPolygonsSet {
 
     const polygonSetBounds = createBounds();
 
-    const figures = splitIntoFigures(binary, {x: 0, y:0});
+    let figures = splitIntoFigures(binary, {x: 0, y: 0});
     const polygons: CvPolygon[] = []
     let polygonIdxOffset = 0;
 
-    figures.map(figure => segmentize(figure)).reduce((acc, f) => [...acc, ...f], [])
+    if ($reductionStrategy.get() == ReductionStrategy.ADVANCED) {
+        figures = figures.map(figure => segmentize(figure)).reduce((acc, f) => [...acc, ...f], [])
+    }
 
     figures.forEach(figure => {
-        // segmentize(figure, res)
-
         const newPolygons = extractPolygons(figure);
         newPolygons.forEach((p) => {
             if (p.parentIdx !== -1) {
@@ -80,6 +83,7 @@ export function generatePolygons(text: string): CvPolygonsSet {
     mat.delete();
     gray.delete();
     binary.delete();
+    figures.forEach(figure => figure.mask.delete())
 
     return res;
 }
@@ -141,8 +145,6 @@ function drawLine(ctx: CanvasRenderingContext2D, start: Point, end: Point, color
     ctx.stroke();
 }
 
-const longSegmentThreshold = 200
-
 function trim(mat: any) {
     const cv = window.cv;
     let rect = cv.boundingRect(mat);
@@ -166,7 +168,6 @@ function splitIntoFigures(mask: any, initialOffset: Point): Figure[] {
     for (let label = 1; label < numLabels; label++) {
         let mask = new cv.Mat();
         cv.compare(labels, new cv.Mat(labels.rows, labels.cols, labels.type(), [label, 0, 0, 0]), mask, cv.CMP_EQ);
-        let count = cv.countNonZero(mask);
         let rect = cv.boundingRect(mask);
         let trimmed = trim(mask);
         res.push({mask: trimmed, offset: {x: rect.x + initialOffset.x, y: rect.y + initialOffset.y}});
@@ -179,38 +180,25 @@ function splitIntoFigures(mask: any, initialOffset: Point): Figure[] {
     return res
 }
 
-let canvasIds = 0;
 
 function imshow(mask: any): HTMLCanvasElement {
     const cv = window.cv;
     let parent = document.getElementById("segmentation") as HTMLDivElement;
+    parent.style.display = ""
     const canvas = document.createElement('canvas');
     canvas.width = mask.cols / 30;  // Set the width as needed
     canvas.height = mask.rows / 30;
-    canvas.id = "canvas" + canvasIds;
+    canvas.id = "canvas" + canvasIdCounter;
     canvas.style.maxHeight = "100px";
     canvas.style.margin = "1px";
-    // canvas.style.border = "1px solid black";
-    canvasIds++;
+    canvasIdCounter++;
     parent.appendChild(canvas);
     cv.imshow(canvas, mask)
     return canvas
 }
 
-function segmentize(figure: Figure): Figure[] {
-    // todo check i delete all arrays
-    const cv = window.cv;
-    const {mask, offset} = figure;
-
-    // splitIntoFigures(mask, offset);
-
-    const canvas = imshow(mask)
+function findSources(mask: any, bottomHeight: number, canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d')!;
-    ctx.fillStyle = getRandomColor();
-
-    // const bottomHeight = polygonsSet.bounds.bottom - (polygonsSet.bounds.bottom - polygonsSet.bounds.top) / 20;
-    const bottomHeight = Math.min(mask.rows - mask.rows / 20, mask.rows - 1)
-
     drawLine(ctx, {x: 0, y: bottomHeight}, {x: canvas.width - 1, y: bottomHeight}, 'lightgrey')
 
     let baseStart = null
@@ -241,31 +229,32 @@ function segmentize(figure: Figure): Figure[] {
     if (sources.length > 2) {
         sources = [sources[0], sources[sources.length - 1]]
     }
-    if (sources.length === 1) {
-        return [figure]
-    }
+    return sources
+}
 
-    const downscaleTimes = 10
-    let downscaledMat = new cv.Mat();
-    let newSize = new cv.Size(Math.round(mask.cols / downscaleTimes), Math.round(mask.rows / downscaleTimes));
-    cv.resize(mask, downscaledMat, newSize, 0, 0, cv.INTER_AREA);
+function buildDistMap(mask: any, bottomHeight: number, sources: number[], canvas: HTMLCanvasElement) {
+    const ctx = canvas.getContext('2d')!;
+    const cv = window.cv;
+    let downscaledMask = new cv.Mat();
+    let newSize = new cv.Size(Math.round(mask.cols / optimizationDownscale), Math.round(mask.rows / optimizationDownscale));
+    cv.resize(mask, downscaledMask, newSize, 0, 0, cv.INTER_AREA);
 
     const start = new Date().getTime();
     const distMaps = sources.map((sourceX) => {
         const queue: Collections.Queue<PointWithDist> = new Collections.Queue();
-        let maskClone = downscaledMat.clone();// Assuming you have your binary Mat called 'binaryMat'
-        let distMap = new cv.Mat(downscaledMat.rows, downscaledMat.cols, cv.CV_32F, new cv.Scalar(-1));
+        let maskClone = downscaledMask.clone();// Assuming you have your binary Mat called 'binaryMat'
+        let distMap = new cv.Mat(downscaledMask.rows, downscaledMask.cols, cv.CV_32F, new cv.Scalar(-1));
         let maxDist = 0;
-        queue.add([sourceX / downscaleTimes, bottomHeight / downscaleTimes, 0])
+        queue.add([sourceX / optimizationDownscale, bottomHeight / optimizationDownscale, 0])
         const diagonalDist = Math.sqrt(2);
         let iteration = 0;
         while (!queue.isEmpty() && iteration < 1_000_000) {
             iteration++
             const [x, y, dist] = queue.dequeue()!;
-            if (x < 0 || x >= downscaledMat.cols || y < 0 || y >= downscaledMat.rows) {
+            if (x < 0 || x >= downscaledMask.cols || y < 0 || y >= downscaledMask.rows) {
                 continue
             }
-            const masked = downscaledMat.ucharAt(y, x) > 0;
+            const masked = downscaledMask.ucharAt(y, x) > 0;
             if (!masked) continue
             const isNew = maskClone.ucharAt(y, x) > 0;
             if (!isNew) {
@@ -275,7 +264,7 @@ function segmentize(figure: Figure): Figure[] {
                 }
                 continue
             }
-            drawPoint(x * downscaleTimes, y * downscaleTimes, ctx, 'green')
+            drawPoint(x * optimizationDownscale, y * optimizationDownscale, ctx, 'green')
             maskClone.ucharPtr(y, x)[0] = 0;
             distMap.floatPtr(y, x)[0] = dist;
             maxDist = Math.max(maxDist, dist)
@@ -291,28 +280,13 @@ function segmentize(figure: Figure): Figure[] {
         maskClone.delete()
         return distMap;
     })
-
-    // const distMap1 = distMaps[0]
-    // const maxDist = cv.minMaxLoc(distMap1).maxVal;
-    // for (let x = 0; x < distMap1.cols; x++) {
-    //     for (let y = 0; y < distMap1.rows; y++) {
-    //         const dist = distMap1.floatAt(y, x);
-    //         if (dist < 0) continue;
-    //         const color = `hsl(100, 100%, ${100-dist * 100 / maxDist}%)`;
-    //         drawPoint(x * downscaleTimes, y * downscaleTimes, ctx, color)
-    //     }
-    // }
-
-    sources.forEach(source => {
-        drawPoint(source, bottomHeight, ctx, 'red')
-    })
-
-    // if (true) return
-
+    downscaledMask.delete()
     console.log("segmentation time", new Date().getTime() - start)
+    return distMaps;
+}
 
+function findJoints(distMaps: any[], ctx: CanvasRenderingContext2D) {
     const splitBounds: BoundingBox[] = []
-
     for (let distIdx1 = 0; distIdx1 < distMaps.length - 1; distIdx1++) {
         const distMap1 = distMaps[distIdx1];
         for (let distIdx2 = distIdx1 + 1; distIdx2 < distMaps.length; distIdx2++) {
@@ -327,10 +301,10 @@ function segmentize(figure: Figure): Figure[] {
                     if (dist1 < 0 || dist2 < 0) continue;
                     const diff = Math.abs(dist2 - dist1);
                     if (diff < 2) {
-                        processPoint(bounds, {x: (x + 2) * downscaleTimes, y: (y + 2) * downscaleTimes})
-                        processPoint(bounds, {x: (x - 2) * downscaleTimes, y: (y - 2) * downscaleTimes})
+                        processPoint(bounds, {x: (x + 2) * optimizationDownscale, y: (y + 2) * optimizationDownscale})
+                        processPoint(bounds, {x: (x - 2) * optimizationDownscale, y: (y - 2) * optimizationDownscale})
                         matches++
-                        drawPoint(x * downscaleTimes, y * downscaleTimes, ctx, 'red')
+                        drawPoint(x * optimizationDownscale, y * optimizationDownscale, ctx, 'red')
                     }
                 }
             }
@@ -340,14 +314,36 @@ function segmentize(figure: Figure): Figure[] {
             }
         }
     }
+    return splitBounds;
+}
+
+function segmentize(figure: Figure): Figure[] {
+    const cv = window.cv;
+    const {mask, offset} = figure;
+
+    const canvas = imshow(mask)
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = getRandomColor();
+
+    const bottomHeight = Math.min(mask.rows - mask.rows / 20, mask.rows - 1)
+    const sources = findSources(mask, bottomHeight, canvas);
+    if (sources.length === 1) {
+        return [figure]
+    }
+
+    const distMaps = buildDistMap(mask, bottomHeight, sources, canvas)
+    sources.forEach(source => {
+        drawPoint(source, bottomHeight, ctx, 'red')
+    })
+
+    const jointBounds = findJoints(distMaps, ctx)
 
     // recombine
     const maskWithoutBounds = mask.clone();
     let jointsMask = new cv.Mat(mask.rows, mask.cols, cv.CV_8UC1, new cv.Scalar(0));
-    splitBounds.forEach((bounds) => {
+    jointBounds.forEach((bounds) => {
         let topLeft = new cv.Point(Math.max(bounds.left, 0), Math.max(bounds.top, 0));
         let bottomRight = new cv.Point(Math.min(bounds.right, mask.cols - 1), Math.min(bounds.bottom, mask.rows - 1));
-        console.log(maskWithoutBounds, maskWithoutBounds.type())
         cv.rectangle(maskWithoutBounds, topLeft, bottomRight, new cv.Scalar(0), cv.FILLED);
         cv.rectangle(jointsMask, topLeft, bottomRight, new cv.Scalar(255), cv.FILLED);
     })
@@ -355,19 +351,25 @@ function segmentize(figure: Figure): Figure[] {
 
     const joint: Figure = {mask: jointsMask, offset}
     const splitFigures = splitIntoFigures(maskWithoutBounds, offset);
+
+    let res = [figure];
     if (splitFigures.length === 1) {
         console.error("Segmentation failed to split figure")
-        return [figure]
-    }
-    if (splitFigures.length > 2) {
+    } else if (splitFigures.length > 2) {
         console.error("Too many segments produced", splitFigures.length)
-        return [figure]
+    } else {
+        const joint1 = tryJoinFigures(splitFigures[0], joint);
+        imshow(joint1.mask)
+        const joint2 = tryJoinFigures(splitFigures[1], joint);
+        imshow(joint2.mask)
+        res = [joint1, joint2]
     }
-    const joint1 = tryJoinFigures(splitFigures[0], joint);
-    imshow(joint1.mask)
-    const joint2 = tryJoinFigures(splitFigures[1], joint);
-    imshow(joint2.mask)
-    return [joint1, joint2]
+
+    splitFigures.forEach(figure => figure.mask.delete())
+    jointsMask.delete()
+    maskWithoutBounds.delete()
+    figure.mask.delete()
+    return res
 }
 
 function tryJoinFigures(f1: Figure, f2: Figure): Figure {
@@ -390,7 +392,8 @@ function tryJoinFigures(f1: Figure, f2: Figure): Figure {
     f1.mask.copyTo(roi1);
     f2.mask.copyTo(roi2);
     cv.bitwise_or(mask1, mask2, mask1);
-    // printNonZeroPercentage(mask1, 'joint mask')
+
+    mask2.delete()
     return {mask: mask1, offset: start}
 }
 

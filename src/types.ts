@@ -33,6 +33,7 @@ export interface BoundingBox {
 export enum ReductionStrategy {
     NONE = 'NONE',
     SIMPLE = 'SIMPLE',
+    ADVANCED = 'ADVANCED',
 }
 
 export interface Figure {

@@ -3,14 +3,22 @@ import {useStore} from "@nanostores/react";
 import {$textA, $textB} from "../../store.ts";
 import {useCallback} from "react";
 import {generatePolygons} from "../../scripts/contours.ts";
+import {combineWithOverlap, combineZigZag, fuseLetters} from "../../scripts/jscad.ts";
+
+const extrusionDist = 500;
 
 function FormGenerate() {
     const textA = useStore($textA)
     const textB = useStore($textB)
 
     const generate = useCallback(() => {
-        const test = generatePolygons(textA)
-        console.log("test", test)
+        const polyA = generatePolygons(textA)
+        const polyB = generatePolygons(textB)
+        const extrusionsA = fuseLetters(polyA, extrusionDist, -Math.PI / 4)
+        const extrusionsB = fuseLetters(polyB, extrusionDist, Math.PI / 4)
+        console.log("extrusionsB", extrusionsB)
+        const combine = combineZigZag(extrusionsA, extrusionsB)
+        console.log("combine", combine);
     }, [textA, textB]);
 
     return <Stack>

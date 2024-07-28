@@ -59,7 +59,7 @@ export function generatePolygons(text: string): CvPolygonsSet {
         const polygonBounds = getBoundingBox(points);
         points.forEach(point => processPoint(polygonSetBounds, point))
         points.forEach(point => processPoint(polygonBounds, point))
-        polygons.push({points, parentIdx: parentIdx, boundingBox: polygonBounds});
+        polygons.push({points, parentIdx: parentIdx, bounds: polygonBounds});
         approx.delete();
     }
 
@@ -69,7 +69,7 @@ export function generatePolygons(text: string): CvPolygonsSet {
     contours.delete();
     hierarchy.delete();
 
-    return {polygons, boundingBox: polygonSetBounds};
+    return {polygons, bounds: polygonSetBounds};
 }
 
 function getBlankBounds(): BoundingBox {
@@ -92,4 +92,11 @@ function getBoundingBox(points: Point[]): BoundingBox {
     const bounds = getBlankBounds();
     points.forEach(point => processPoint(bounds, point));
     return bounds;
+}
+
+export function getMidPoint(bounds: BoundingBox): Point {
+    return {
+        x: (bounds.left + bounds.right) / 2,
+        y: (bounds.top + bounds.bottom) / 2,
+    }
 }

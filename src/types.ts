@@ -1,12 +1,21 @@
+import {Geom3} from "@jscad/modeling/src/geometries/types";
+
 export interface CvPolygonsSet {
-    boundingBox: BoundingBox;
+    bounds: BoundingBox;
     polygons: CvPolygon[];
 }
 
 export interface CvPolygon {
-    boundingBox: BoundingBox;
+    bounds: BoundingBox;
     points: Point[];
     parentIdx: number;
+}
+
+export type Span = [number, number];
+
+export interface ExtrudedPolygon {
+    mesh: Geom3;
+    span: Span;
 }
 
 export interface Point {

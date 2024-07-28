@@ -7,11 +7,12 @@ import {loadOpenCV} from "./scripts/opencv.ts";
 import FormGenerate from "./components/form-generate/FormGenerate.tsx";
 import {$cvLoaded, $mesh, $reductionStrategy, $textA, $textB} from "./store.ts";
 import {generatePolygons} from "./scripts/contours.ts";
-import {combineWithOverlap, combineNone, fuseLetters} from "./scripts/jscad.ts";
+import {combineNone, combineWithOverlap, fuseLetters} from "./scripts/jscad.ts";
 import {render} from "./scripts/render.ts";
 import {ReductionStrategy} from "./types.ts";
 import {Geom3} from "@jscad/modeling/src/geometries/types";
 import {notifications, Notifications} from '@mantine/notifications';
+
 const theme = createTheme({});
 const extrusionDist = 500;
 
@@ -67,7 +68,6 @@ function App() {
                 navbar={{
                     width: 200,
                     breakpoint: 'sm',
-                    // collapsed: {mobile: false},
                 }}
             >
                 <AppShell.Navbar p="xs">

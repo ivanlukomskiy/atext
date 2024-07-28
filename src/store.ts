@@ -2,8 +2,8 @@ import {atom, WritableAtom} from 'nanostores'
 import {Geom3} from "@jscad/modeling/src/geometries/types";
 import {ReductionStrategy} from "./types.ts";
 
-export const $textA = atom("PEPE")
-export const $textB = atom("SAMPLE")
+export const $textA = atom("POKEMON")
+export const $textB = atom("PILLOW")
 export const $font = atom("Arial")
 export const $cvLoaded = atom(false)
 export const $mesh: WritableAtom<Geom3[]> = atom([])

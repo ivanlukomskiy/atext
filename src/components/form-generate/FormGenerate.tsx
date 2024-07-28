@@ -103,7 +103,7 @@ function FormGenerate({onGenerate}: FormGenerateProps) {
                 <Radio value={ReductionStrategy.NONE} label={"None"}/>
             </Stack>
         </Radio.Group>
-        <Button onClick={onGenerate} disabled={!cvLoaded}>Generate</Button>
+        <Button onClick={onGenerate} disabled={!cvLoaded || mesh.length > 0}>Generate</Button>
         <Button onClick={downloadMesh} disabled={mesh.length === 0}>Download</Button>
     </Stack>
 }

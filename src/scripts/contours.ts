@@ -151,6 +151,12 @@ function trim(mat: any) {
     return mat.roi(rect).clone();
 }
 
+function drawRect(ctx: CanvasRenderingContext2D, start: Point, end: Point, color: string = 'blue') {
+    ctx.strokeStyle = color; // Border color
+    ctx.lineWidth = 10;
+    ctx.strokeRect(start.x, start.y, end.x-start.x, end.y-start.y);
+}
+
 function splitIntoFigures(mask: any): Figure[] {
     const cv = window.cv;
     let labels = new cv.Mat();
@@ -189,7 +195,7 @@ function segmentize(figure: Figure) {
     const canvas = document.createElement('canvas');
     canvas.width = mask.cols / 30;  // Set the width as needed
     canvas.height = mask.rows / 30;
-    canvas.id = "canvas"+canvasIds;
+    canvas.id = "canvas" + canvasIds;
     canvas.style.maxHeight = "100px";
     canvas.style.margin = "1px";
     // canvas.style.border = "1px solid black";
@@ -230,6 +236,9 @@ function segmentize(figure: Figure) {
             }
             baseStart = null;
         }
+    }
+    if (sources.length > 2) {
+        sources = [sources[0], sources[sources.length - 1]]
     }
 
     const downscaleTimes = 10
@@ -301,12 +310,14 @@ function segmentize(figure: Figure) {
 
     console.log("segmentation time", new Date().getTime() - start)
 
+    const splitBounds: BoundingBox[] = []
+
     for (let distIdx1 = 0; distIdx1 < distMaps.length - 1; distIdx1++) {
         const distMap1 = distMaps[distIdx1];
         for (let distIdx2 = distIdx1 + 1; distIdx2 < distMaps.length; distIdx2++) {
             const distMap2 = distMaps[distIdx2];
             let matches = 0
-
+            const bounds = createBounds()
             // it hurts, but it's necessary
             for (let x = 0; x < distMap1.cols; x++) {
                 for (let y = 0; y < distMap1.rows; y++) {
@@ -315,14 +326,21 @@ function segmentize(figure: Figure) {
                     if (dist1 < 0 || dist2 < 0) continue;
                     const diff = Math.abs(dist2 - dist1);
                     if (diff < 2) {
+                        processPoint(bounds, {x: (x+2) * downscaleTimes, y: (y+2) * downscaleTimes})
+                        processPoint(bounds, {x: (x - 2) * downscaleTimes, y: (y - 2) * downscaleTimes})
                         matches++
                         drawPoint(x * downscaleTimes, y * downscaleTimes, ctx, 'red')
                     }
                 }
             }
+            if (matches > 0) {
+                splitBounds.push(bounds);
+                drawRect(ctx, {x: bounds.left, y: bounds.top}, {x: bounds.right, y: bounds.bottom})
+            }
         }
     }
 
+    console.log("splitBounds", splitBounds)
 
 }
 

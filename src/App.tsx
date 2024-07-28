@@ -19,23 +19,26 @@ function App() {
 
     const generate = useCallback(() => {
         const polyA = generatePolygons($textA.get())
-        const polyB = generatePolygons($textB.get())
-        const extrusionsA = fuseLetters(polyA, extrusionDist, -Math.PI / 4)
-        const extrusionsB = fuseLetters(polyB, extrusionDist, Math.PI / 4)
-        let res: Geom3[] = [];
-        if ($reductionStrategy.get() === ReductionStrategy.SIMPLE) {
-            res = combineWithOverlap(extrusionsA, extrusionsB)
-        } else {
-            res = combineNone(extrusionsA, extrusionsB)
-        }
-
-        console.log("res", res);
-        render(res, canvasRef.current!);
-        $mesh.set(res);
+        // const polyB = generatePolygons($textB.get())
+        // const extrusionsA = fuseLetters(polyA, extrusionDist, -Math.PI / 4)
+        // const extrusionsB = fuseLetters(polyB, extrusionDist, Math.PI / 4)
+        // let res: Geom3[] = [];
+        // if ($reductionStrategy.get() === ReductionStrategy.SIMPLE) {
+        //     res = combineWithOverlap(extrusionsA, extrusionsB)
+        // } else {
+        //     res = combineNone(extrusionsA, extrusionsB)
+        // }
+        //
+        // console.log("res", res);
+        // render(res, canvasRef.current!);
+        // $mesh.set(res);
     }, []);
 
     const viewer = useMemo(() => {
         return <div id="viewer" style={{width: 800, height: 500, backgroundColor: "green", display: 'none'}}></div>
+    }, [])
+    const segmentation = useMemo(() => {
+        return <canvas id="segmentation" style={{width: 1000, height: 100}}></canvas>
     }, [])
 
     useEffect(() => {
@@ -52,7 +55,7 @@ function App() {
                 navbar={{
                     width: 200,
                     breakpoint: 'sm',
-                    collapsed: { mobile: false },
+                    collapsed: {mobile: false},
                 }}
             >
                 <AppShell.Navbar p="xs">
@@ -62,7 +65,8 @@ function App() {
                 </AppShell.Navbar>
 
                 <AppShell.Main>
-                {viewer}
+                    {viewer}
+                    {segmentation}
                 </AppShell.Main>
             </AppShell>
         </MantineProvider>

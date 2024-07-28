@@ -1,6 +1,6 @@
 import {booleans, colors, extrusions, primitives, transforms} from '@jscad/modeling'
+// import {serialize} from '@jscad/stl-serializer'
 // @ts-expect-error no declarations for this package
-import {serialize} from '@jscad/stl-serializer'
 import mf from '@jscad/3mf-serializer';
 import {CvPolygon, CvPolygonsSet, ExtrudedPolygon, Span} from "../types.ts";
 import {getMidPoint} from "./contours.ts";

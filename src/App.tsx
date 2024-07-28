@@ -18,8 +18,8 @@ function App() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     const generate = useCallback(() => {
-        const polyA = generatePolygons($textA.get())
-        // const polyB = generatePolygons($textB.get())
+        // const polyA = generatePolygons($textA.get())
+        const polyB = generatePolygons($textB.get())
         // const extrusionsA = fuseLetters(polyA, extrusionDist, -Math.PI / 4)
         // const extrusionsB = fuseLetters(polyB, extrusionDist, Math.PI / 4)
         // let res: Geom3[] = [];

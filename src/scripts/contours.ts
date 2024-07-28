@@ -1,6 +1,5 @@
 import {BoundingBox, CvPolygon, CvPolygonsSet, Point} from "../types.ts";
 import {$bold, $font, $italic} from "../store.ts";
-import {polygon} from "@jscad/modeling/src/primitives";
 import * as Collections from 'typescript-collections';
 
 const width = 10000;
@@ -117,6 +116,7 @@ function drawLine(ctx: CanvasRenderingContext2D, start: Point, end: Point, color
 }
 
 function segmentize(mask: any, polygonsSet: CvPolygonsSet) {
+    // todo check i delete all arrays
     const cv = window.cv;
     cv.imshow("segmentation", mask)
 
@@ -150,7 +150,7 @@ function segmentize(mask: any, polygonsSet: CvPolygonsSet) {
     cv.resize(mask, downscaledMat, newSize, 0, 0, cv.INTER_AREA);
 
     const start = new Date().getTime();
-    sources.forEach((sourceX) => {
+    const distMaps = sources.map((sourceX) => {
         const stack: Collections.Queue<PointWithDist> = new Collections.Queue();
         let maskClone = downscaledMat.clone();// Assuming you have your binary Mat called 'binaryMat'
         let distMap = new cv.Mat(downscaledMat.rows, downscaledMat.cols, cv.CV_32F, new cv.Scalar(-1));
@@ -167,7 +167,7 @@ function segmentize(mask: any, polygonsSet: CvPolygonsSet) {
             }
             drawPoint(x * downscaleTimes, y * downscaleTimes, ctx, 'green')
             maskClone.ucharPtr(y, x)[0] = 0;
-            distMap.ucharPtr(y, x)[0] = dist;
+            distMap.floatPtr(y, x)[0] = dist;
             maxDist = Math.max(maxDist, dist)
             stack.add([x+1, y, dist + 1])
             stack.add([x-1, y, dist + 1])
@@ -178,13 +178,37 @@ function segmentize(mask: any, polygonsSet: CvPolygonsSet) {
             stack.add([x-1, y+1, dist + diagonalDist])
             stack.add([x-1, y-1, dist + diagonalDist])
         }
+        maskClone.delete()
+        console.log(`dist 1: min=${cv.minMaxLoc(distMap).minVal}, max=${cv.minMaxLoc(distMap).maxVal}`);
         console.log("iteration", iteration)
+        console.log("maxDist", maxDist)
+        return distMap;
     })
-    console.log("new Date().getTime() - start", new Date().getTime() - start)
+    console.log("segmentation time", new Date().getTime() - start)
 
+    for (let distIdx1 = 0; distIdx1 < distMaps.length - 1; distIdx1++) {
+        const distMap1 = distMaps[distIdx1];
+        for (let distIdx2 = distIdx1+1; distIdx2 < distMaps.length; distIdx2++) {
+            const distMap2 = distMaps[distIdx2];
+            let matches = 0
 
+            // it hurts, but it's necessary
+            for (let x = 0; x < distMap1.cols; x++) {
+                for (let y = 0; y < distMap1.rows; y++) {
+                    const dist1 = distMap1.floatAt(y, x);
+                    const dist2 = distMap2.floatAt(y, x);
+                    if (dist1 < 0 || dist2 < 0) continue;
+                    const diff = Math.abs(dist2-dist1);
+                    if (diff < 3) {
+                        matches++
+                        drawPoint(x * downscaleTimes, y * downscaleTimes, ctx, 'red')
+                    }
+                }
+            }
 
-
+            console.log("matches", matches)
+        }
+    }
 }
 
 type PointWithDist = [number, number, number]

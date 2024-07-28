@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@emotion/react": "^11.13.0",
+    "@jscad/3mf-serializer": "^2.1.11",
     "@jscad/modeling": "^2.12.2",
     "@jscad/regl-renderer": "^2.6.9",
     "@jscad/stl-serializer": "^2.1.17",

@@ -1,5 +1,5 @@
 import './App.css'
-import {Button, createTheme, MantineProvider} from '@mantine/core';
+import {Button, createTheme, MantineProvider, Stack} from '@mantine/core';
 import '@mantine/core/styles.css';
 import {useCallback, useEffect, useMemo, useRef} from "react";
 import {loadOpenCV} from "./scripts/opencv.ts";
@@ -30,7 +30,7 @@ function App() {
     }, []);
 
     const viewer = useMemo(() => {
-        return <div id="viewer" style={{width: 800, height: 500, backgroundColor: "green"}}></div>
+        return <div id="viewer" style={{width: 800, height: 500, backgroundColor: "green", display: 'none'}}></div>
     }, [])
 
     useEffect(() => {
@@ -46,11 +46,11 @@ function App() {
     }, []);
 
     return (
-        <MantineProvider theme={theme} defaultColorScheme="dark">
+        <MantineProvider theme={theme}>
             {/*<canvas ref={canvasRef} width={1000} height={400}/>*/}
             {viewer}
             {mesh.length === 0 && <FormGenerate onGenerate={generate}/>}
-            {mesh.length !== 0 &&  <Button onClick={downloadMesh}>Generate</Button>}
+            {mesh.length !== 0 &&  <Stack><Button onClick={downloadMesh}>Download</Button></Stack>}
         </MantineProvider>
     )
 }

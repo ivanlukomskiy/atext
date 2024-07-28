@@ -1,6 +1,7 @@
 import {booleans, colors, extrusions, primitives, transforms} from '@jscad/modeling'
 // @ts-expect-error no declarations for this package
 import {serialize} from '@jscad/stl-serializer'
+import mf from '@jscad/3mf-serializer';
 import {CvPolygon, CvPolygonsSet, ExtrudedPolygon, Span} from "../types.ts";
 import {getMidPoint} from "./contours.ts";
 import {Geom3} from "@jscad/modeling/src/geometries/types";
@@ -12,12 +13,12 @@ const {union, subtract, intersect} = booleans;
 const {translate, rotate} = transforms
 
 export const download = (mesh: Geom3[], name: string) => {
-    const stlData = serialize({binary: true}, mesh)
+    const stlData = mf.serialize({binary: true}, mesh)
     const blob = new Blob(stlData)
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = name + '.stl';
+    a.download = name + '.3mf';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

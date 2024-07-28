@@ -13,13 +13,13 @@ function FormGenerate({onGenerate}: FormGenerateProps) {
 
     return <Stack>
         <TextInput
-            label="side a"
+            // label="side a"
             placeholder="left side text"
             value={textA}
             onChange={(event) => $textA.set(event.currentTarget.value)}
         />
         <TextInput
-            label="side b"
+            // label="side b"
             placeholder="right side text"
             value={textB}
             onChange={(event) => $textB.set(event.currentTarget.value)}

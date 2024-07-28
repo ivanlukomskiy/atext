@@ -11,6 +11,7 @@ export function render(objects: Geom3[], canvasRef: HTMLCanvasElement) {
     const orbitControls = controls.orbit
 
     canvasRef =  document.getElementById("viewer") as HTMLCanvasElement;
+    canvasRef.style.display = "";
 
     const width = canvasRef.clientWidth
     const height = canvasRef.clientHeight

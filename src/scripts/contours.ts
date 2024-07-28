@@ -41,7 +41,14 @@ export function generatePolygons(text: string): CvPolygonsSet {
     const figures = splitIntoFigures(binary);
     const polygons: CvPolygon[] = []
     let polygonIdxOffset = 0;
+
     figures.forEach(figure => {
+        segmentize(figure)
+    })
+
+    figures.forEach(figure => {
+        segmentize(figure, res)
+
         const newPolygons = extractPolygons(figure);
         newPolygons.forEach((p) => {
             if (p.parentIdx !== -1) {
@@ -71,7 +78,6 @@ export function generatePolygons(text: string): CvPolygonsSet {
     })
 
     console.log("res", res)
-    // segmentize(binary, res)
 
     mat.delete();
     gray.delete();
@@ -170,26 +176,40 @@ function splitIntoFigures(mask: any): Figure[] {
     return res
 }
 
-function segmentize(mask: any, polygonsSet: CvPolygonsSet) {
+let canvasIds = 0;
+
+function segmentize(figure: Figure) {
     // todo check i delete all arrays
     const cv = window.cv;
-    cv.imshow("segmentation", mask)
+    const {mask, offset} = figure;
 
     splitIntoFigures(mask);
 
-    let canvas = document.getElementById("segmentation") as HTMLCanvasElement;
+    let parent = document.getElementById("segmentation") as HTMLDivElement;
+    const canvas = document.createElement('canvas');
+    canvas.width = mask.cols / 30;  // Set the width as needed
+    canvas.height = mask.rows / 30;
+    canvas.id = "canvas"+canvasIds;
+    canvas.style.maxHeight = "100px";
+    canvas.style.margin = "1px";
+    // canvas.style.border = "1px solid black";
+    canvasIds++;
+    parent.appendChild(canvas);
+    cv.imshow(canvas, mask)
+
     const ctx = canvas.getContext('2d')!;
     ctx.fillStyle = getRandomColor();
 
-    const bottomHeight = polygonsSet.bounds.bottom - (polygonsSet.bounds.bottom - polygonsSet.bounds.top) / 20;
+    // const bottomHeight = polygonsSet.bounds.bottom - (polygonsSet.bounds.bottom - polygonsSet.bounds.top) / 20;
+    const bottomHeight = Math.min(mask.rows - mask.rows / 10, mask.rows - 1)
 
     drawLine(ctx, {x: 0, y: bottomHeight}, {x: canvas.width - 1, y: bottomHeight}, 'lightgrey')
 
     let baseStart = null
     let basesCount = 0
     let sources: number[] = [];
-    for (let x = 0; x < mask.cols; x++) {
-        let masked = mask.ucharAt(bottomHeight, x) > 0;
+    for (let x = 0; x < mask.cols + 1; x++) {
+        let masked = x < mask.cols ? mask.ucharAt(bottomHeight, x) > 0 : false;
         if (masked && baseStart === null) {
             baseStart = x;
             basesCount++

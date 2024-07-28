@@ -38,7 +38,8 @@ function App() {
         return <div id="viewer" style={{width: 800, height: 500, backgroundColor: "green", display: 'none'}}></div>
     }, [])
     const segmentation = useMemo(() => {
-        return <canvas id="segmentation" style={{width: 1000, height: 100}}></canvas>
+        return <div id="segmentation"></div>
+        // return <canvas id="segmentation" style={{width: 1000, height: 100}}></canvas>
     }, [])
 
     useEffect(() => {

@@ -397,13 +397,13 @@ function tryJoinFigures(f1: Figure, f2: Figure): Figure {
     return {mask: mask1, offset: start}
 }
 
-function printNonZeroPercentage(mat: any, name: string) {
-    const cv = window.cv;
-    let nonZeroCount = cv.countNonZero(mat);
-    let totalElements = mat.rows * mat.cols;
-    let percentage = (nonZeroCount / totalElements) * 100;
-    console.log(`${name} fullness: ${percentage.toFixed(2)}%`);
-}
+// function printNonZeroPercentage(mat: any, name: string) {
+//     const cv = window.cv;
+//     let nonZeroCount = cv.countNonZero(mat);
+//     let totalElements = mat.rows * mat.cols;
+//     let percentage = (nonZeroCount / totalElements) * 100;
+//     console.log(`${name} fullness: ${percentage.toFixed(2)}%`);
+// }
 
 type PointWithDist = [number, number, number]
 

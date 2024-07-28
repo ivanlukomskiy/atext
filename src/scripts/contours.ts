@@ -1,5 +1,5 @@
 import {BoundingBox, CvPolygon, CvPolygonsSet, Point} from "../types.ts";
-import {$font} from "../store.ts";
+import {$bold, $font, $italic} from "../store.ts";
 
 const width = 10000;
 const height = 1000;
@@ -20,7 +20,9 @@ export function generatePolygons(text: string): CvPolygonsSet {
     ctx.fillStyle = 'lightgrey';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.font = '720px \"' + $font.get() + "\"";
+
+    ctx.font = `${$italic.get() ? 'italic ' : ''}${$bold.get() ? 'bold ' : ''}720px \"${$font.get()}\"`;
+
     ctx.fillStyle = 'black';
     ctx.fillText(text, 100, 900);
 

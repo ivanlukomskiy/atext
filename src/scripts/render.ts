@@ -5,22 +5,29 @@
 // ********************
 import {prepareRender, drawCommands, cameras, controls, entitiesFromSolids} from "@jscad/regl-renderer";
 import {Geom3} from "@jscad/modeling/src/geometries/types";
+import {$camera} from "../store.ts";
 
-export function render(objects: Geom3[], canvasRef: HTMLCanvasElement) {
+export function render(objects: Geom3[], viewerRef: HTMLCanvasElement) {
     const perspectiveCamera = cameras.perspective
     const orbitControls = controls.orbit
 
-    canvasRef =  document.getElementById("viewer") as HTMLCanvasElement;
-    canvasRef.style.display = "";
+    viewerRef =  document.getElementById("viewer") as HTMLCanvasElement;
+    while (viewerRef.firstChild) {
+        viewerRef.removeChild(viewerRef.firstChild);
+    }
+    viewerRef.style.display = "";
 
-    const width = canvasRef.clientWidth
-    const height = canvasRef.clientHeight
+
+    const width = viewerRef.clientWidth
+    const height = viewerRef.clientHeight
 
     const state: any = {}
 
-    const cameraSettings = {...perspectiveCamera.defaults, position: [5000, 0, 1000], fov: .1}
-    console.log("cameraSettings", cameraSettings)
-    state.camera = Object.assign({}, cameraSettings)
+    let camera = $camera.get();
+    if (camera === null) {
+        camera = {...perspectiveCamera.defaults, position: [5000, 0, 1000], fov: .1}
+    }
+    state.camera = Object.assign({}, camera)
     // console.log("perspectiveCamera.defaults", perspectiveCamera.defaults)
     perspectiveCamera.setProjection(state.camera, state.camera, {width, height})
     perspectiveCamera.update(state.camera, state.camera)
@@ -28,7 +35,7 @@ export function render(objects: Geom3[], canvasRef: HTMLCanvasElement) {
     state.controls = orbitControls.defaults
 
     const setupOptions: any = {
-        glOptions: {container: canvasRef},
+        glOptions: {container: viewerRef},
     }
     const renderer = prepareRender(setupOptions)
 
@@ -112,6 +119,8 @@ export function render(objects: Geom3[], canvasRef: HTMLCanvasElement) {
             zoomDelta = 0
             updateView = true
         }
+
+        $camera.set(state.camera)
     }
 
     const updateAndRender = () => {
@@ -124,6 +133,7 @@ export function render(objects: Geom3[], canvasRef: HTMLCanvasElement) {
 
             state.camera.position = updates.camera.position
             perspectiveCamera.update(state.camera)
+            $camera.set(state.camera)
 
             renderer(renderOptions)
         }
@@ -166,12 +176,12 @@ export function render(objects: Geom3[], canvasRef: HTMLCanvasElement) {
         pointerDown = true
         lastX = ev.pageX
         lastY = ev.pageY
-        canvasRef.setPointerCapture(ev.pointerId)
+        viewerRef.setPointerCapture(ev.pointerId)
     }
 
     const upHandler = (ev: any) => {
         pointerDown = false
-        canvasRef.releasePointerCapture(ev.pointerId)
+        viewerRef.releasePointerCapture(ev.pointerId)
     }
 
     const wheelHandler = (ev: any) => {
@@ -179,9 +189,9 @@ export function render(objects: Geom3[], canvasRef: HTMLCanvasElement) {
         ev.preventDefault()
     }
 
-    canvasRef.onpointermove = moveHandler
-    canvasRef.onpointerdown = downHandler
-    canvasRef.onpointerup = upHandler
-    canvasRef.onwheel = wheelHandler
+    viewerRef.onpointermove = moveHandler
+    viewerRef.onpointerdown = downHandler
+    viewerRef.onpointerup = upHandler
+    viewerRef.onwheel = wheelHandler
 }
 

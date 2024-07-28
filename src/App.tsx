@@ -1,21 +1,19 @@
 import './App.css'
-import {Button, createTheme, MantineProvider, Stack} from '@mantine/core';
+import {AppShell, createTheme, MantineProvider, ScrollArea} from '@mantine/core';
 import '@mantine/core/styles.css';
 import {useCallback, useEffect, useMemo, useRef} from "react";
 import {loadOpenCV} from "./scripts/opencv.ts";
 import FormGenerate from "./components/form-generate/FormGenerate.tsx";
 import {$cvLoaded, $mesh, $textA, $textB} from "./store.ts";
 import {generatePolygons} from "./scripts/contours.ts";
-import {combineWithOverlap, download, fuseLetters} from "./scripts/jscad.ts";
+import {combineWithOverlap, fuseLetters} from "./scripts/jscad.ts";
 import {render} from "./scripts/render.ts";
-import {useStore} from "@nanostores/react";
 
 const theme = createTheme({});
 const extrusionDist = 500;
 
 function App() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const mesh = useStore($mesh);
 
     const generate = useCallback(() => {
         const polyA = generatePolygons($textA.get())
@@ -39,18 +37,27 @@ function App() {
         });
     }, []);
 
-    const downloadMesh = useCallback(() => {
-        const mesh = $mesh.get();
-        const name = $textA.get().toLowerCase() + "_" + $textB.get().toLowerCase();
-        download(mesh, name);
-    }, []);
 
     return (
         <MantineProvider theme={theme}>
-            {/*<canvas ref={canvasRef} width={1000} height={400}/>*/}
-            {viewer}
-            {mesh.length === 0 && <FormGenerate onGenerate={generate}/>}
-            {mesh.length !== 0 &&  <Stack><Button onClick={downloadMesh}>Download</Button></Stack>}
+            <AppShell
+                padding="md"
+                navbar={{
+                    width: 200,
+                    breakpoint: 'sm',
+                    collapsed: { mobile: false },
+                }}
+            >
+                <AppShell.Navbar p="xs">
+                    <ScrollArea h="100%">
+                        <FormGenerate onGenerate={generate}/>
+                    </ScrollArea>
+                </AppShell.Navbar>
+
+                <AppShell.Main>
+                {viewer}
+                </AppShell.Main>
+            </AppShell>
         </MantineProvider>
     )
 }

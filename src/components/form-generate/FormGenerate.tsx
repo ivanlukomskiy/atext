@@ -1,6 +1,6 @@
 import {Button, Checkbox, Radio, Select, Stack, TextInput} from "@mantine/core";
 import {useStore} from "@nanostores/react";
-import {$bold, $font, $italic, $mesh, $reductionStrategy, $textA, $textB} from "../../store.ts";
+import {$bold, $cvLoaded, $font, $italic, $mesh, $reductionStrategy, $textA, $textB} from "../../store.ts";
 import {useCallback} from "react";
 import {download} from "../../scripts/jscad.ts";
 import {ReductionStrategy} from "../../types.ts";
@@ -32,6 +32,7 @@ function FormGenerate({onGenerate}: FormGenerateProps) {
     const bold = useStore($bold)
     const italic = useStore($italic)
     const mesh = useStore($mesh);
+    const cvLoaded = useStore($cvLoaded);
     const reductionStrategy = useStore($reductionStrategy);
 
     const onFont = useCallback((option: string | null) => {
@@ -97,11 +98,12 @@ function FormGenerate({onGenerate}: FormGenerateProps) {
             // description="Choose one of the following"
         >
             <Stack>
+                <Radio value={ReductionStrategy.ADVANCED} label={"Advanced"}/>
                 <Radio value={ReductionStrategy.SIMPLE} label={"Simple"}/>
                 <Radio value={ReductionStrategy.NONE} label={"None"}/>
             </Stack>
         </Radio.Group>
-        <Button onClick={onGenerate}>Generate</Button>
+        <Button onClick={onGenerate} disabled={!cvLoaded || mesh.length > 0}>Generate</Button>
         <Button onClick={downloadMesh} disabled={mesh.length === 0}>Download</Button>
     </Stack>
 }

@@ -1,7 +1,7 @@
 import './App.css'
 import {createTheme, MantineProvider} from '@mantine/core';
 import '@mantine/core/styles.css';
-import {useCallback, useEffect, useRef} from "react";
+import {useCallback, useEffect, useMemo, useRef} from "react";
 import {loadOpenCV} from "./scripts/opencv.ts";
 import FormGenerate from "./components/form-generate/FormGenerate.tsx";
 import {$cvLoaded, $textA, $textB} from "./store.ts";
@@ -26,6 +26,10 @@ function App() {
         render([extrusionsB[0].mesh], canvasRef.current!)
     }, []);
 
+    const viewer = useMemo(() => {
+        return <div id="viewer" style={{width: 800, height: 500, backgroundColor: "green"}}></div>
+    }, [])
+
     useEffect(() => {
         loadOpenCV(() => {
             $cvLoaded.set(true)
@@ -34,7 +38,8 @@ function App() {
 
     return (
         <MantineProvider theme={theme} defaultColorScheme="dark">
-            <canvas ref={canvasRef} width={1000} height={400}/>
+            {/*<canvas ref={canvasRef} width={1000} height={400}/>*/}
+            {viewer}
             <FormGenerate onGenerate={generate}/>
         </MantineProvider>
     )

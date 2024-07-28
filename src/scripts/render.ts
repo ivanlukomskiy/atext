@@ -10,6 +10,8 @@ export function render(objects: Geom3[], canvasRef: HTMLCanvasElement) {
     const perspectiveCamera = cameras.perspective
     const orbitControls = controls.orbit
 
+    canvasRef =  document.getElementById("viewer") as HTMLCanvasElement;
+
     const width = canvasRef.clientWidth
     const height = canvasRef.clientHeight
 
@@ -28,6 +30,7 @@ export function render(objects: Geom3[], canvasRef: HTMLCanvasElement) {
         glOptions: {container: canvasRef},
     }
     const renderer = prepareRender(setupOptions)
+    console.log("renderer", renderer)
 
     const gridOptions = {
         visuals: {
@@ -53,7 +56,7 @@ export function render(objects: Geom3[], canvasRef: HTMLCanvasElement) {
     }
     const entities = entitiesFromSolids({}, objects as any)
 
-// assemble the options for rendering
+    // assemble the options for rendering
     const renderOptions = {
         camera: state.camera,
         drawCommands: {
@@ -70,7 +73,7 @@ export function render(objects: Geom3[], canvasRef: HTMLCanvasElement) {
         ]
     }
 
-// the heart of rendering, as themes, controls, etc change
+    // the heart of rendering, as themes, controls, etc change
     let updateView = true
 
     const doRotatePanZoom = () => {
@@ -128,7 +131,7 @@ export function render(objects: Geom3[], canvasRef: HTMLCanvasElement) {
     }
     window.requestAnimationFrame(updateAndRender)
 
-// convert HTML events (mouse movement) to viewer changes
+    // convert HTML events (mouse movement) to viewer changes
     let lastX = 0
     let lastY = 0
 

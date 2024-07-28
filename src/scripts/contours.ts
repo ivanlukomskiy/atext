@@ -2,7 +2,7 @@ import {BoundingBox, CvPolygon, CvPolygonsSet, Point} from "../types.ts";
 
 const width = 10000;
 const height = 1000;
-const scale = .1;
+const scale = 1;
 const precision = 0.001;
 
 export function generatePolygons(text: string): CvPolygonsSet {
@@ -48,13 +48,13 @@ export function generatePolygons(text: string): CvPolygonsSet {
         const points: Point[] = [];
         for (let j = 0; j < approx.rows; ++j) {
             points.push({
-                x: approx.data32S[j * 2] * scale,
-                y: approx.data32S[j * 2 + 1] * scale,
+                x: approx.data32S[j * 2] * scale / 10,
+                y: approx.data32S[j * 2 + 1] * scale / 10,
             });
         }
         points.push({  // enclose polygon
-            x: approx.data32S[0] * scale,
-            y: approx.data32S[1] * scale,
+            x: approx.data32S[0] * scale / 10,
+            y: approx.data32S[1] * scale / 10,
         });
         const polygonBounds = getBoundingBox(points);
         points.forEach(point => processPoint(polygonSetBounds, point))
@@ -84,8 +84,8 @@ function getBlankBounds(): BoundingBox {
 function processPoint(bounds: BoundingBox, point: Point) {
     bounds.left = Math.min(bounds.left, point.x);
     bounds.right = Math.max(bounds.right, point.x);
-    bounds.top = Math.min(bounds.top, point.x);
-    bounds.bottom = Math.max(bounds.bottom, point.x);
+    bounds.top = Math.min(bounds.top, point.y);
+    bounds.bottom = Math.max(bounds.bottom, point.y);
 }
 
 function getBoundingBox(points: Point[]): BoundingBox {

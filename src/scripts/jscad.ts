@@ -11,14 +11,13 @@ const {colorize} = colors;
 const {union, subtract, intersect} = booleans;
 const {translate, rotate} = transforms
 
-export const createAndSerialize = () => {
-    const cube = primitives.cuboid({size: [10, 10, 10]})
-    const stlData = serialize({binary: true}, cube)
+export const download = (mesh: Geom3[], name: string) => {
+    const stlData = serialize({binary: true}, mesh)
     const blob = new Blob(stlData)
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'model.stl';
+    a.download = name + '.stl';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -122,8 +121,8 @@ export function combineZigZag(extrusionsA: ExtrudedPolygon[], extrusionsB: Extru
     const text1 = unionAll(extrusionsA)
     const text2 = unionAll(extrusionsB)
     res = [intersect(text1, text2)]
+    // console.log("res", res, text1, text2)
     // res = [text1]
-
 
     return res
 }

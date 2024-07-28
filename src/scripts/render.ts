@@ -30,7 +30,6 @@ export function render(objects: Geom3[], canvasRef: HTMLCanvasElement) {
         glOptions: {container: canvasRef},
     }
     const renderer = prepareRender(setupOptions)
-    console.log("renderer", renderer)
 
     const gridOptions = {
         visuals: {
